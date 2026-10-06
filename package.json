@@ -1,0 +1,56 @@
+{
+  "name": "laser-svg",
+  "version": "0.1.0",
+  "description": "Validate and fix SVG files for common laser-cutting problems.",
+  "keywords": [
+    "svg",
+    "laser",
+    "laser-cutting",
+    "validator",
+    "svg-lint"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "laser-svg": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" README.md",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" README.md",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mylasertools-com/laser-svg.git"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

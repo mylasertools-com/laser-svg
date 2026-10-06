@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100mm" height="50mm" viewBox="0 0 100 50">
+  <text id="title" x="10" y="25" font-size="12">Hello, laser!</text>
+  <g id="group">
+    <tspan id="sub">nested span</tspan>
+  </g>
+</svg>
