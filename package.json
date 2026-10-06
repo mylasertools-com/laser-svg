@@ -1,5 +1,5 @@
 {
-  "name": "laser-svg",
+  "name": "@mylasertools/laser-svg",
   "version": "0.1.0",
   "description": "Validate and fix SVG files for common laser-cutting problems.",
   "keywords": [
@@ -10,6 +10,9 @@
     "svg-lint"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

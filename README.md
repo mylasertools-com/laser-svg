@@ -13,13 +13,13 @@ Design tools export SVGs that laser cutters and their software handle badly: mis
 ## Installation
 
 ```bash
-npm install --save-dev laser-svg
+npm install --save-dev @mylasertools/laser-svg
 ```
 
 Or run it without installing:
 
 ```bash
-npx laser-svg check design.svg
+npx @mylasertools/laser-svg check design.svg
 ```
 
 Requires Node.js 20+.
@@ -33,6 +33,9 @@ laser-svg check input.svg --duplicate-tolerance 0.01
 laser-svg fix input.svg -o fixed.svg
 laser-svg fix input.svg --remove-hidden
 ```
+
+(When using `npx` without installing, prefix the commands with
+`npx @mylasertools/laser-svg`.)
 
 Example output:
 
@@ -70,7 +73,7 @@ Exit codes:
 ## TypeScript API
 
 ```ts
-import { analyzeSvg, fixSvg } from "laser-svg";
+import { analyzeSvg, fixSvg } from "@mylasertools/laser-svg";
 
 const report = await analyzeSvg(svgString);
 // { valid, width, height, units, elementCount, pathCount, issues: [...] }

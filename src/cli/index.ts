@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { basename } from "node:path";
 import { Command } from "commander";
 
@@ -49,12 +50,21 @@ function guard<T>(fn: () => T): T {
   }
 }
 
+function cliVersion(): string {
+  try {
+    const req = createRequire(import.meta.url);
+    return (req("../../package.json") as { version: string }).version;
+  } catch {
+    return "0.0.0";
+  }
+}
+
 const program = new Command();
 
 program
   .name("laser-svg")
   .description("Validate and fix SVG files for laser cutting.")
-  .version("0.1.0")
+  .version(cliVersion())
   .exitOverride();
 
 program
