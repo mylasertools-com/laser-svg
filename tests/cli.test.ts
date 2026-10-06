@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const CLI = fileURLToPath(new URL("../src/cli/index.ts", import.meta.url));
+const CLI = fileURLToPath(new URL("../dist/cli/index.js", import.meta.url));
 const FIXTURES = fileURLToPath(new URL("./fixtures/", import.meta.url));
 
 interface Run {
