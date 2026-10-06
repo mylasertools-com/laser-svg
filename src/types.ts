@@ -45,6 +45,38 @@ export interface FixResult {
   remainingIssues: LaserSvgIssue[];
 }
 
+export interface AnalyzeSvgOptions {
+  /**
+   * Coordinate tolerance (in SVG user units) for near-duplicate path
+   * detection. `0` disables fuzzy matching (exact duplicates only).
+   * Default: 0.01.
+   */
+  duplicateTolerance?: number;
+}
+
+/** AnalyzeSvgOptions after defaults are applied. */
+export interface ResolvedAnalyzeOptions {
+  duplicateTolerance: number;
+}
+
+export const DEFAULT_ANALYZE_OPTIONS: ResolvedAnalyzeOptions = {
+  duplicateTolerance: 0.01,
+};
+
+/** Merge user options with defaults; throws RangeError on invalid values. */
+export function resolveAnalyzeOptions(
+  options: AnalyzeSvgOptions = {},
+): ResolvedAnalyzeOptions {
+  const tolerance =
+    options.duplicateTolerance ?? DEFAULT_ANALYZE_OPTIONS.duplicateTolerance;
+  if (!Number.isFinite(tolerance) || tolerance < 0) {
+    throw new RangeError(
+      `duplicateTolerance must be a finite number >= 0 (got ${options.duplicateTolerance}).`,
+    );
+  }
+  return { duplicateTolerance: tolerance };
+}
+
 /* ------------------------------------------------------------------ */
 /* Internal document model (kept minimal so rules stay easy to write)  */
 /* ------------------------------------------------------------------ */
@@ -89,7 +121,7 @@ export interface SvgDocument {
 }
 
 export interface ValidationRule {
-  run(document: SvgDocument): LaserSvgIssue[];
+  run(document: SvgDocument, options: ResolvedAnalyzeOptions): LaserSvgIssue[];
 }
 
 /** Thrown by parseSvg for malformed / non-SVG input. */

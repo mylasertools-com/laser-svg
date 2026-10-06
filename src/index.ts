@@ -3,6 +3,7 @@ export type {
   LaserSvgReport,
   FixOptions,
   FixResult,
+  AnalyzeSvgOptions,
   Severity,
   ValidationRule,
 } from "./types.ts";

@@ -1,7 +1,12 @@
 import { walkElements } from "../../parser/parseSvg.ts";
-import { normalizePathData } from "../../geometry/pathData.ts";
+import {
+  absolutizePathData,
+  normalizePathData,
+  pathTokensWithinTolerance,
+} from "../../geometry/pathData.ts";
 import type {
   LaserSvgIssue,
+  ResolvedAnalyzeOptions,
   SvgDocument,
   SvgNode,
   ValidationRule,
@@ -9,44 +14,86 @@ import type {
 import { elementLabel } from "../helpers.ts";
 
 /**
- * DUPLICATE_PATH — two <path> elements whose normalized `d` values are
- * identical. MVP scope only: exact geometric duplicates after whitespace /
- * number formatting normalization. No affine-transform equivalence.
+ * DUPLICATE_PATH / NEAR_DUPLICATE_PATH
  *
- * Fixable only when the whole element is identical apart from `id`: two
- * paths with the same geometry but different presentation attributes
- * (stroke, fill, stroke-width, ...) render differently, so removing one
- * would change the output. Those are reported with fixable: false.
+ * Exact duplicates — identical normalized `d` (whitespace and number
+ * formatting ignored). Fixable only when the whole element is identical
+ * apart from `id`: paths with the same geometry but different presentation
+ * attributes render differently, so removing one would change the output.
+ *
+ * Near duplicates — same command sequence after absolutization (relative
+ * commands converted to absolute), with every numeric parameter within
+ * `options.duplicateTolerance` user units (inclusive). Reported as
+ * NEAR_DUPLICATE_PATH and NEVER fixable: two deliberately separate laser
+ * passes can legitimately run close together, so auto-removal is unsafe.
+ *
+ * A near-duplicate check only runs when a path is not already an exact
+ * duplicate of an earlier one. Out of scope (documented): reversed
+ * geometry, different starting points, cross-element-type comparison,
+ * reparameterized curves, overlap detection.
  */
 export const duplicatePathsRule: ValidationRule = {
-  run(document: SvgDocument): LaserSvgIssue[] {
+  run(document: SvgDocument, options: ResolvedAnalyzeOptions): LaserSvgIssue[] {
     const issues: LaserSvgIssue[] = [];
     if (!document.root) return issues;
 
-    const firstSeen = new Map<string, SvgNode>(); // normalized d -> first path
+    interface Seen {
+      node: SvgNode;
+      normalized: string;
+      absolute: ReturnType<typeof absolutizePathData>;
+    }
+    const seen: Seen[] = [];
+
     walkElements(document.root, (node) => {
       if (node.name !== "path") return;
       const d = node.attributes["d"];
       if (d === undefined || d.trim() === "") return; // EMPTY_PATH covers this
 
-      const key = normalizePathData(d);
-      const original = firstSeen.get(key);
-      if (original === undefined) {
-        firstSeen.set(key, node);
+      const normalized = normalizePathData(d);
+      const exact = seen.find((s) => s.normalized === normalized);
+      if (exact !== undefined) {
+        const identical = attributesEqualIgnoringId(exact.node, node);
+        issues.push({
+          code: "DUPLICATE_PATH",
+          severity: "warning",
+          message: identical
+            ? `Path ${elementLabel(node)} duplicates ${elementLabel(exact.node)}.`
+            : `Path ${elementLabel(node)} has the same geometry as ${elementLabel(exact.node)} but different attributes.`,
+          elementId: node.attributes.id ?? node.ref,
+          elementType: node.name,
+          fixable: identical,
+        });
+        seen.push({ node, normalized, absolute: absolutizePathData(d) });
         return;
       }
 
-      const identical = attributesEqualIgnoringId(original, node);
-      issues.push({
-        code: "DUPLICATE_PATH",
-        severity: "warning",
-        message: identical
-          ? `Path ${elementLabel(node)} duplicates ${elementLabel(original)}.`
-          : `Path ${elementLabel(node)} has the same geometry as ${elementLabel(original)} but different attributes.`,
-        elementId: node.attributes.id ?? node.ref,
-        elementType: node.name,
-        fixable: identical,
-      });
+      if (options.duplicateTolerance > 0) {
+        const absolute = absolutizePathData(d);
+        if (absolute !== null) {
+          for (const earlier of seen) {
+            if (
+              earlier.absolute !== null &&
+              pathTokensWithinTolerance(
+                earlier.absolute,
+                absolute,
+                options.duplicateTolerance,
+              )
+            ) {
+              issues.push({
+                code: "NEAR_DUPLICATE_PATH",
+                severity: "warning",
+                message: `Path ${elementLabel(node)} is within ${options.duplicateTolerance} units of ${elementLabel(earlier.node)}.`,
+                elementId: node.attributes.id ?? node.ref,
+                elementType: node.name,
+                fixable: false,
+              });
+              break; // report against the first near match only
+            }
+          }
+        }
+      }
+
+      seen.push({ node, normalized, absolute: absolutizePathData(d) });
     });
     return issues;
   },

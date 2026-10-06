@@ -1,9 +1,11 @@
 import { parseSvg } from "../parser/parseSvg.ts";
 import type {
+  AnalyzeSvgOptions,
   LaserSvgIssue,
   LaserSvgReport,
   ValidationRule,
 } from "../types.ts";
+import { resolveAnalyzeOptions } from "../types.ts";
 import { dimensionsRule, unitsRule } from "./rules/dimensions.ts";
 import { viewBoxRule } from "./rules/viewBox.ts";
 import { textRule } from "./rules/text.ts";
@@ -31,14 +33,19 @@ export const defaultRules: ValidationRule[] = [
 
 /**
  * Analyze an SVG string for common laser-cutting problems.
- * Throws SvgParseError for malformed / non-SVG input.
+ * Throws SvgParseError for malformed / non-SVG input, and RangeError for
+ * invalid options.
  */
-export function analyzeSvg(svg: string): LaserSvgReport {
+export function analyzeSvg(
+  svg: string,
+  options: AnalyzeSvgOptions = {},
+): LaserSvgReport {
   const document = parseSvg(svg);
+  const resolved = resolveAnalyzeOptions(options);
 
   const issues: LaserSvgIssue[] = [];
   for (const rule of defaultRules) {
-    issues.push(...rule.run(document));
+    issues.push(...rule.run(document, resolved));
   }
 
   const report: LaserSvgReport = {

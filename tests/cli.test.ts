@@ -113,6 +113,33 @@ describe("cli check", () => {
     const report = JSON.parse(r.stdout);
     expect(report.valid).toBe(false);
   });
+
+  it("--duplicate-tolerance controls near-duplicate detection", () => {
+    const near = join(FIXTURES, "near-duplicate.svg");
+    // default tolerance 0.01 -> near duplicate reported
+    const dflt = run(["check", near]);
+    expect(dflt.code).toBe(0);
+    expect(dflt.stdout).toContain("NEAR_DUPLICATE_PATH");
+
+    // tighter tolerance -> no longer a duplicate
+    const tight = run(["check", near, "--duplicate-tolerance", "0.001"]);
+    expect(tight.code).toBe(0);
+    expect(tight.stdout).not.toContain("NEAR_DUPLICATE_PATH");
+
+    // disabled entirely
+    const off = run(["check", near, "--duplicate-tolerance", "0"]);
+    expect(off.stdout).not.toContain("NEAR_DUPLICATE_PATH");
+  });
+
+  it("--duplicate-tolerance rejects invalid values with exit 2", () => {
+    const near = join(FIXTURES, "near-duplicate.svg");
+    const negative = run(["check", near, "--duplicate-tolerance", "-1"]);
+    expect(negative.code).toBe(2);
+    expect(negative.stderr).toContain("--duplicate-tolerance");
+
+    const garbage = run(["check", near, "--duplicate-tolerance", "abc"]);
+    expect(garbage.code).toBe(2);
+  });
 });
 
 describe("cli fix", () => {

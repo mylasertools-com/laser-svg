@@ -17,6 +17,18 @@ function fail(message: string): never {
   process.exit(EXIT_FAILURE);
 }
 
+/** Commander parser for --duplicate-tolerance; invalid values exit 2. */
+function parseToleranceOption(value: string): number {
+  if (!/^\d+(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(value.trim())) {
+    fail(`--duplicate-tolerance expects a number >= 0 (got "${value}").`);
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    fail(`--duplicate-tolerance expects a number >= 0 (got "${value}").`);
+  }
+  return parsed;
+}
+
 function readSource(file: string): string {
   try {
     return readFileSync(file, "utf8");
@@ -49,18 +61,29 @@ program
   .command("check")
   .description("Check an SVG file for laser-cutting problems.")
   .argument("<file>", "path to the SVG file")
+  .option(
+    "--duplicate-tolerance <value>",
+    "coordinate tolerance in user units for near-duplicate detection (0 disables fuzzy matching)",
+    parseToleranceOption,
+  )
   .option("--json", "output the report as JSON")
-  .action((file: string, opts: { json?: boolean }) => {
-    const source = readSource(file);
-    const report = guard(() => analyzeSvg(source));
+  .action(
+    (file: string, opts: { json?: boolean; duplicateTolerance?: number }) => {
+      const source = readSource(file);
+      const analyzeOptions =
+        opts.duplicateTolerance === undefined
+          ? {}
+          : { duplicateTolerance: opts.duplicateTolerance };
+      const report = guard(() => analyzeSvg(source, analyzeOptions));
 
-    if (opts.json) {
-      process.stdout.write(JSON.stringify(report, null, 2) + "\n");
-    } else {
-      process.stdout.write(renderHumanReport(file, report));
-    }
-    process.exit(report.valid ? EXIT_OK : EXIT_VALIDATION_ERRORS);
-  });
+      if (opts.json) {
+        process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+      } else {
+        process.stdout.write(renderHumanReport(file, report));
+      }
+      process.exit(report.valid ? EXIT_OK : EXIT_VALIDATION_ERRORS);
+    },
+  );
 
 program
   .command("fix")

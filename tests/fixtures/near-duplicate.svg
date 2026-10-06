@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100mm" height="100mm" viewBox="0 0 100 100">
+  <path id="outline" d="M 10 10 L 50 10"/>
+  <path id="outline-copy" d="M 10.005 10.002 L 50.004 9.999"/>
+</svg>

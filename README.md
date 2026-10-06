@@ -29,6 +29,7 @@ Requires Node.js 20+.
 ```bash
 laser-svg check input.svg          # report problems
 laser-svg check input.svg --json   # machine-readable report
+laser-svg check input.svg --duplicate-tolerance 0.01
 laser-svg fix input.svg -o fixed.svg
 laser-svg fix input.svg --remove-hidden
 ```
@@ -93,23 +94,37 @@ Each issue has a stable `code`, a `severity` (`error` | `warning` | `info`), a h
 
 `fixSvg(svg, options)` accepts `{ removeHidden?: boolean }` (default `false`).
 
+Both functions accept analysis options:
+
+```ts
+const report = analyzeSvg(svg, {
+  duplicateTolerance: 0.01, // default; 0 disables near-duplicate matching
+});
+```
+
+`duplicateTolerance` is in SVG user units; a path pair whose absolutized
+coordinates all differ by at most that amount is reported as
+`NEAR_DUPLICATE_PATH`. Invalid values (negative, non-finite) throw
+`RangeError`.
+
 ## Validation rules
 
-| Code                 | Severity | Fixable                          | Detects                                                       |
-| -------------------- | -------- | -------------------------------- | ------------------------------------------------------------- |
-| `MISSING_VIEWBOX`    | warning  | yes, if width/height are usable  | root `<svg>` without `viewBox`                                |
-| `AMBIGUOUS_UNITS`    | warning  | no                               | unitless or `%` root dimensions (mm/cm/in/pt/px are accepted) |
-| `INVALID_DIMENSIONS` | error    | no                               | width/height ≤ 0 or malformed                                 |
-| `LIVE_TEXT`          | warning  | no                               | `<text>` / `<tspan>`                                          |
-| `RASTER_IMAGE`       | info     | no                               | `<image>`                                                     |
-| `FILTER_PRESENT`     | warning  | no                               | `<filter>`                                                    |
-| `MASK_PRESENT`       | warning  | no                               | `<mask>`                                                      |
-| `CLIP_PATH_PRESENT`  | warning  | no                               | `<clipPath>`                                                  |
-| `PATTERN_PRESENT`    | warning  | no                               | `<pattern>`                                                   |
-| `EMPTY_PATH`         | warning  | yes                              | `<path>` with no usable `d`                                   |
-| `HIDDEN_ELEMENT`     | info     | yes (opt-in)                     | `display:none`, `visibility:hidden`, `opacity:0`              |
-| `DUPLICATE_PATH`     | warning  | yes, if attributes are identical | two paths with identical normalized `d`                       |
-| `OPEN_PATH`          | warning  | no                               | path data with no `Z`/`z` close command                       |
+| Code                  | Severity | Fixable                          | Detects                                                                          |
+| --------------------- | -------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| `MISSING_VIEWBOX`     | warning  | yes, if width/height are usable  | root `<svg>` without `viewBox`                                                   |
+| `AMBIGUOUS_UNITS`     | warning  | no                               | unitless or `%` root dimensions (mm/cm/in/pt/px are accepted)                    |
+| `INVALID_DIMENSIONS`  | error    | no                               | width/height ≤ 0 or malformed                                                    |
+| `LIVE_TEXT`           | warning  | no                               | `<text>` / `<tspan>`                                                             |
+| `RASTER_IMAGE`        | info     | no                               | `<image>`                                                                        |
+| `FILTER_PRESENT`      | warning  | no                               | `<filter>`                                                                       |
+| `MASK_PRESENT`        | warning  | no                               | `<mask>`                                                                         |
+| `CLIP_PATH_PRESENT`   | warning  | no                               | `<clipPath>`                                                                     |
+| `PATTERN_PRESENT`     | warning  | no                               | `<pattern>`                                                                      |
+| `EMPTY_PATH`          | warning  | yes                              | `<path>` with no usable `d`                                                      |
+| `HIDDEN_ELEMENT`      | info     | yes (opt-in)                     | `display:none`, `visibility:hidden`, `opacity:0`                                 |
+| `DUPLICATE_PATH`      | warning  | yes, if attributes are identical | two paths with identical normalized `d`                                          |
+| `NEAR_DUPLICATE_PATH` | warning  | no                               | paths within `duplicateTolerance` user units after absolutization (default 0.01) |
+| `OPEN_PATH`           | warning  | no                               | path data with no `Z`/`z` close command                                          |
 
 ## What `fix` changes
 
@@ -130,7 +145,11 @@ Everything else — whitespace, attribute order, comments, unrelated elements �
 ## Limitations
 
 - **`OPEN_PATH` produces false positives.** v1 checks only whether the path data contains a close command; genuinely open cut lines and engrave strokes are also flagged. This is deliberate — auto-closing could silently change a cut.
-- **Duplicate detection is exact-match only** (after whitespace/number normalization). Paths that are geometrically equal but written differently are not detected.
+- **Duplicate detection is command-level, not geometric.** Exact matching
+  compares normalized path syntax; near matching compares absolutized
+  command parameters within `duplicateTolerance`. Reversed geometry,
+  different starting points, `<rect>` vs `<path>`, and reparameterized
+  curves are not recognized as duplicates.
 - **No geometry engine.** No kerf compensation, path offsets, boolean operations, self-intersection detection, endpoint snapping, or minimum-feature-width checks — planned for later versions.
 - **No font conversion.** Live text is reported, not outlined.
 - Filters, masks, clip paths and patterns are reported but not flattened.

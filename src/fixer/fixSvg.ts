@@ -2,6 +2,7 @@ import { parseSvg } from "../parser/parseSvg.ts";
 import { analyzeSvg } from "../validator/analyzeSvg.ts";
 import { parseLength } from "../validator/helpers.ts";
 import type {
+  AnalyzeSvgOptions,
   FixOptions,
   FixResult,
   LaserSvgIssue,
@@ -23,9 +24,12 @@ const REMOVAL_CODES = new Set(["EMPTY_PATH", "DUPLICATE_PATH"]);
  * The fixer never modifies geometry, units, or text — anything it cannot
  * safely repair is returned in `remainingIssues`.
  */
-export function fixSvg(svg: string, options: FixOptions = {}): FixResult {
+export function fixSvg(
+  svg: string,
+  options: FixOptions & AnalyzeSvgOptions = {},
+): FixResult {
   const document = parseSvg(svg);
-  const initial = analyzeSvg(svg);
+  const initial = analyzeSvg(svg, options);
 
   const fixes: LaserSvgIssue[] = [];
   const byRef = indexElements(document);
@@ -48,7 +52,7 @@ export function fixSvg(svg: string, options: FixOptions = {}): FixResult {
   if (viewBoxFix) fixes.push(viewBoxFix);
 
   const fixedSvg = serializeSvg(document);
-  const remainingIssues = analyzeSvg(fixedSvg).issues;
+  const remainingIssues = analyzeSvg(fixedSvg, options).issues;
 
   return { svg: fixedSvg, fixes, remainingIssues };
 }
