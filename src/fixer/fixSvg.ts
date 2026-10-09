@@ -1,6 +1,6 @@
 import { parseSvg } from "../parser/parseSvg.ts";
 import { analyzeSvg } from "../validator/analyzeSvg.ts";
-import { parseLength } from "../validator/helpers.ts";
+import { lengthInPixels, parseLength } from "../validator/helpers.ts";
 import type {
   AnalyzeSvgOptions,
   FixOptions,
@@ -61,7 +61,13 @@ function indexElements(document: SvgDocument): Map<string, SvgNode> {
   const map = new Map<string, SvgNode>();
   for (const node of document.elements) {
     map.set(node.ref, node);
-    if (node.attributes.id) map.set(node.attributes.id, node);
+    if (
+      node.attributes.id &&
+      document.elements.filter((n) => n.attributes.id === node.attributes.id)
+        .length === 1
+    ) {
+      map.set(node.attributes.id, node);
+    }
   }
   return map;
 }
@@ -86,7 +92,7 @@ function applyViewBoxFix(
   if (!width || !height || width.value <= 0 || height.value <= 0) return null;
   if (width.unit === "%" || height.unit === "%") return null;
 
-  const viewBox = `0 0 ${format(width.value)} ${format(height.value)}`;
+  const viewBox = `0 0 ${format(lengthInPixels(width))} ${format(lengthInPixels(height))}`;
   setAttribute(root, "viewBox", viewBox);
   return {
     code: "MISSING_VIEWBOX",

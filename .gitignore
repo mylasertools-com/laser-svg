@@ -3,3 +3,8 @@ dist/
 *.fixed.svg
 *.log
 .DS_Store
+site/
+qa-dist/
+playwright-report/
+test-results/
+*.tgz

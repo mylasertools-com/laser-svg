@@ -13,6 +13,18 @@ export interface ParsedLength {
   unit?: string;
 }
 
+/** Initial SVG user units are CSS pixels (96 per inch). */
+export function lengthInPixels(length: ParsedLength): number {
+  const factors: Record<string, number> = {
+    px: 1,
+    mm: 96 / 25.4,
+    cm: 96 / 2.54,
+    in: 96,
+    pt: 96 / 72,
+  };
+  return length.value * (factors[length.unit ?? "px"] ?? 1);
+}
+
 /** Parse an SVG length attribute. Returns undefined when malformed. */
 export function parseLength(raw: string): ParsedLength | undefined {
   const m = LENGTH_RE.exec(raw);

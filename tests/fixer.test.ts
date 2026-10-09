@@ -49,7 +49,9 @@ describe("fixSvg — empty paths", () => {
 describe("fixSvg — viewBox", () => {
   it("adds a viewBox derived from width/height", () => {
     const result = fixSvg(fixture("no-viewbox.svg"));
-    expect(result.svg).toContain('viewBox="0 0 100 80"');
+    expect(result.svg).toContain(
+      'viewBox="0 0 377.9527559055118 302.3622047244095"',
+    );
     expect(result.fixes.map((f) => f.code)).toContain("MISSING_VIEWBOX");
     expect(result.remainingIssues.map((i) => i.code)).not.toContain(
       "MISSING_VIEWBOX",

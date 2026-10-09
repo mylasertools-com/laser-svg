@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Inspect SVGs for laser cutting. Find duplicate paths, missing viewBoxes and live text. Preview conservative fixes locally in your browser."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="theme-color" content="#f4f3ed" />
+    <title>Laser SVG — Inspect before you cut</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#workspace">Skip to SVG workbench</a>
+    <header class="site-header">
+      <a class="brand" href="https://mylasertools.com"
+        ><span class="brand-mark" aria-hidden="true">✳</span> MyLaserTools
+        <span class="brand-divider">/</span> <strong>Laser SVG</strong></a
+      >
+      <nav aria-label="Project">
+        <a href="https://github.com/mylasertools-com/laser-svg#readme">Docs ↗</a
+        ><a href="https://github.com/mylasertools-com/laser-svg">GitHub ↗</a
+        ><span class="version">v0.1.0 · ESM + CLI</span>
+      </nav>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">
+            <span class="status-dot"></span> THE SVG PREFLIGHT WORKBENCH
+          </p>
+          <h1>Inspect before you cut<span>.</span></h1>
+          <p class="intro-copy">
+            Find the hidden extras. Fix what’s safe. Keep your geometry.
+          </p>
+        </div>
+        <div class="intro-note">
+          <span class="local-label">LOCAL BY DESIGN</span>
+          <p>Your SVG stays in this browser.<br />No account. No uploads.</p>
+        </div>
+      </section>
+      <section id="workspace" class="workspace" aria-label="SVG workbench">
+        <aside class="controls">
+          <div class="section-heading">
+            <span>01</span>
+            <h2>Choose a starting point</h2>
+          </div>
+          <div class="examples" aria-label="Example SVGs">
+            <button
+              data-example="cleanup"
+              class="example active"
+              aria-pressed="true"
+            >
+              <span>01 / Extra paths</span
+              ><small>A tag with duplicates &amp; hidden art</small>
+            </button>
+            <button
+              data-example="missing-viewbox"
+              class="example"
+              aria-pressed="false"
+            >
+              <span>02 / Missing viewBox</span
+              ><small>Keep the original physical scale</small>
+            </button>
+            <button
+              data-example="near-duplicates"
+              class="example"
+              aria-pressed="false"
+            >
+              <span>03 / Almost identical</span
+              ><small>Compare near-duplicate tolerance</small>
+            </button>
+            <button
+              data-example="live-text"
+              class="example"
+              aria-pressed="false"
+            >
+              <span>04 / Text &amp; open paths</span
+              ><small>Some fixes need a human</small>
+            </button>
+            <button data-example="clean" class="example" aria-pressed="false">
+              <span>05 / Clean file</span><small>A simple mounting plate</small>
+            </button>
+          </div>
+          <label class="upload" for="file"
+            >↥ Open your SVG<input
+              id="file"
+              type="file"
+              accept=".svg,image/svg+xml"
+          /></label>
+          <p class="small-note">
+            Or paste SVG in the source editor below. Up to 1 MB.
+          </p>
+          <div class="options">
+            <h3>Fix options</h3>
+            <label class="checkbox"
+              ><input id="remove-hidden" type="checkbox" /> Remove hidden
+              elements</label
+            >
+            <p class="small-note">
+              Off by default. Hidden layers may be intentional.
+            </p>
+            <label class="tolerance" for="tolerance"
+              >Near-duplicate tolerance
+              <input
+                id="tolerance"
+                type="number"
+                min="0"
+                max="10"
+                step="0.001"
+                value="0.01"
+            /></label>
+            <p class="small-note">
+              SVG user units. Set 0 for exact matches only.
+            </p>
+          </div>
+        </aside>
+        <div class="preview-panel">
+          <div class="preview-toolbar">
+            <div class="file-label">
+              <span aria-hidden="true">◇</span
+              ><span id="filename">cleanup.svg</span>
+            </div>
+            <span id="dimensions" class="mono">120 × 80 mm</span>
+          </div>
+          <div class="view-switch" role="group" aria-label="Preview version">
+            <button id="view-original" aria-pressed="true">Original</button
+            ><button id="view-fixed" aria-pressed="false" disabled>
+              Fixed result
+            </button>
+          </div>
+          <div id="stage" class="stage">
+            <span class="stage-corner top-left" aria-hidden="true"></span
+            ><span class="stage-corner bottom-right" aria-hidden="true"></span
+            ><img id="preview" alt="Original SVG artwork" />
+            <p id="preview-error" hidden>
+              The browser cannot render this SVG. See the source and report
+              below.
+            </p>
+            <div class="stage-caption">
+              <span id="view-label">ORIGINAL ARTWORK</span
+              ><span>SVG / 2D PREVIEW</span>
+            </div>
+          </div>
+          <div class="metrics">
+            <div><strong id="path-count">—</strong><span>paths</span></div>
+            <div>
+              <strong id="issue-count">—</strong><span>issues found</span>
+            </div>
+            <div>
+              <strong id="fix-count">—</strong
+              ><span id="fix-count-label">available fixes</span>
+            </div>
+          </div>
+          <div class="preview-footer">
+            <p id="example-note">
+              Exact duplicates and empty paths can be removed. The drawing
+              should look the same.
+            </p>
+          </div>
+        </div>
+        <aside class="report-panel">
+          <div class="section-heading">
+            <span>02</span>
+            <h2>Inspection report</h2>
+          </div>
+          <div id="summary" role="status" aria-live="polite">
+            Inspecting SVG…
+          </div>
+          <p id="error" role="alert" hidden></p>
+          <div id="issues" class="issues"></div>
+          <div id="fixes-section" hidden>
+            <h3>Applied changes</h3>
+            <ul id="fixes"></ul>
+          </div>
+          <div class="report-actions">
+            <button id="apply" class="primary" disabled>
+              Apply fixes <span>↗</span></button
+            ><button id="download" class="secondary" disabled>
+              Download fixed SVG ↓</button
+            ><button id="report-download" class="text-button" disabled>
+              Download JSON report
+            </button>
+          </div>
+          <p class="report-note">
+            Checks common file issues. A clear report is not a cutting or
+            material-fit guarantee.
+          </p>
+        </aside>
+      </section>
+      <section class="source-section">
+        <div class="source-heading">
+          <div class="section-heading">
+            <span>03</span>
+            <h2>Under the hood</h2>
+          </div>
+          <p>Edit the original. The report updates as you type.</p>
+        </div>
+        <div class="editors">
+          <label
+            >Original SVG<textarea
+              id="source"
+              spellcheck="false"
+              aria-label="Original SVG source"
+            ></textarea></label
+          ><label
+            >Fixed SVG <span class="read-only">READ ONLY</span
+            ><textarea
+              id="output"
+              spellcheck="false"
+              readonly
+              aria-label="Fixed SVG source"
+              placeholder="Apply fixes to inspect the result."
+            ></textarea>
+          </label>
+        </div>
+      </section>
+      <section class="about">
+        <div>
+          <p class="eyebrow">IN YOUR OWN TOOLS</p>
+          <h2>The same engine, anywhere.</h2>
+          <p>
+            A typed API for your editor, a CLI for your workflow.<br />The
+            workbench runs the repository’s actual package source.
+          </p>
+        </div>
+        <pre><code>import { analyzeSvg, fixSvg } from '@mylasertools/laser-svg';
+
+const report = analyzeSvg(source);
+const { svg, fixes, remainingIssues } = fixSvg(source);</code></pre>
+      </section>
+    </main>
+    <footer>
+      <span
+        >Made for makers. Built by
+        <a href="https://mylasertools.com">MyLaserTools</a>.</span
+      ><span
+        ><a
+          href="https://github.com/mylasertools-com/laser-svg/blob/main/LICENSE"
+          >MIT licensed</a
+        >
+        <span class="footer-dot">·</span>
+        <a href="https://www.npmjs.com/package/@mylasertools/laser-svg"
+          >npm package ↗</a
+        ></span
+      >
+    </footer>
+    <noscript
+      >This workbench needs JavaScript. The package is also available as a
+      Node.js CLI.</noscript
+    >
+  </body>
+</html>

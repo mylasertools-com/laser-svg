@@ -1,0 +1,13 @@
+name: Feature request
+description: Suggest a validation rule or workflow improvement.
+body:
+  - type: textarea
+    attributes:
+      label: What problem would this solve?
+      description: Describe the fabrication or integration workflow and current difficulty.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Example and expected behavior
+      description: Include sample SVG or API usage when helpful, and whether this should be a report or an automatic fix.

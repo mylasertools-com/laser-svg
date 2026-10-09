@@ -1,0 +1,20 @@
+name: Bug report
+description: Report an unexpected validator, fixer, CLI, or workbench result.
+body:
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Include the expected behavior, actual result, and package version or demo URL.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Minimal SVG and reproduction
+      description: Paste a small SVG you can share publicly, plus the command or options used.
+      render: xml
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Environment
+      description: Node.js version and OS, or browser name and version.

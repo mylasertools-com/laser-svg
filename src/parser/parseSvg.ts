@@ -1,5 +1,6 @@
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { SvgParseError } from "../types.ts";
+import { recordSourceSpans } from "./sourceSpans.ts";
 import type { SvgDocument, SvgNode, SvgPart, SvgRawKind } from "../types.ts";
 
 type RawEntry = Record<string, unknown>;
@@ -187,6 +188,12 @@ export function parseSvg(source: string): SvgDocument {
   // remove it from the flat content-element list.
   document.elements.shift();
   document.root = root;
+
+  const ids = new Set(document.elements.map((n) => n.attributes.id));
+  for (const node of document.elements) {
+    while (ids.has(node.ref)) node.ref = `_${node.ref}`;
+  }
+  recordSourceSpans(document);
 
   const span = findRootSpan(source);
   if (span) {

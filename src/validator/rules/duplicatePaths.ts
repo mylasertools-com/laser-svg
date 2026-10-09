@@ -50,9 +50,18 @@ export const duplicatePathsRule: ValidationRule = {
       if (d === undefined || d.trim() === "") return; // EMPTY_PATH covers this
 
       const normalized = normalizePathData(d);
-      const exact = seen.find((s) => s.normalized === normalized);
+      // Local coordinates only describe the same placement in the same parent
+      // coordinate system and with the same element transform.
+      const comparable = seen.filter(
+        (s) =>
+          s.node.parent === node.parent &&
+          s.node.attributes.transform === node.attributes.transform,
+      );
+      const exact = comparable.find((s) => s.normalized === normalized);
       if (exact !== undefined) {
-        const identical = attributesEqualIgnoringId(exact.node, node);
+        const identical =
+          attributesEqualIgnoringId(exact.node, node) &&
+          canRemoveDuplicate(document, node);
         issues.push({
           code: "DUPLICATE_PATH",
           severity: "warning",
@@ -70,7 +79,7 @@ export const duplicatePathsRule: ValidationRule = {
       if (options.duplicateTolerance > 0) {
         const absolute = absolutizePathData(d);
         if (absolute !== null) {
-          for (const earlier of seen) {
+          for (const earlier of comparable) {
             if (
               earlier.absolute !== null &&
               pathTokensWithinTolerance(
@@ -98,6 +107,54 @@ export const duplicatePathsRule: ValidationRule = {
     return issues;
   },
 };
+
+function canRemoveDuplicate(document: SvgDocument, node: SvgNode): boolean {
+  // References, stylesheets, animation and compositing can make identical
+  // path attributes behave differently. Keep these for manual inspection.
+  if (
+    document.elements.some((n) =>
+      ["style", "script", "use", "animate", "animateTransform", "set"].includes(
+        n.name,
+      ),
+    )
+  )
+    return false;
+  if (document.source.includes("<?xml-stylesheet")) return false;
+  if (node.parts.some((p) => p.kind === "element")) return false;
+  const id = node.attributes.id;
+  if (
+    id &&
+    document.elements.some((n) =>
+      Object.entries(n.attributes).some(
+        ([key, value]) => key !== "id" && value.includes(`#${id}`),
+      ),
+    )
+  )
+    return false;
+  for (
+    let current: SvgNode | undefined = node;
+    current;
+    current = current.parent
+  ) {
+    if (
+      Object.keys(current.attributes).some((key) =>
+        /^(style|class|opacity|fill-opacity|stroke-opacity|filter|mask|clip-path|mix-blend-mode)$/.test(
+          key,
+        ),
+      )
+    )
+      return false;
+    if (
+      Object.values(current.attributes).some((value) =>
+        /(?:rgba?\(|hsla?\(|url\(|transparent|#[\da-f]{8}\b|#[\da-f]{4}\b)/i.test(
+          value,
+        ),
+      )
+    )
+      return false;
+  }
+  return true;
+}
 
 function attributesEqualIgnoringId(a: SvgNode, b: SvgNode): boolean {
   const keys = new Set([

@@ -4,10 +4,13 @@
   "description": "Validate and fix SVG files for common laser-cutting problems.",
   "keywords": [
     "svg",
-    "laser",
     "laser-cutting",
-    "validator",
-    "svg-lint"
+    "svg-validator",
+    "svg-lint",
+    "svg-optimizer",
+    "cli",
+    "typescript",
+    "fabrication"
   ],
   "license": "MIT",
   "publishConfig": {
@@ -34,14 +37,22 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli/index.js",
+    "build": "tsc -p tsconfig.build.json && node scripts/chmod.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" README.md",
-    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" README.md",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run",
     "pretest": "npm run build",
     "test:watch": "vitest",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "check": "npm run format:check && npm run typecheck && npm test",
+    "build:demo": "node scripts/build-demo.mjs",
+    "build:site": "npm run build:demo",
+    "demo": "npm run build:demo && node scripts/serve.mjs",
+    "test:browser": "npm run build && playwright test",
+    "test:package": "node scripts/check-package.mjs",
+    "capture": "npm run build:demo && node scripts/capture.mjs",
+    "prepack": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -49,12 +60,18 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "fast-xml-parser": "^4.5.0"
+    "fast-xml-parser": "^5.11.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^22.10.0",
+    "esbuild": "^0.28.2",
     "prettier": "^3.9.9",
     "typescript": "^5.7.0",
-    "vitest": "^2.1.0"
+    "vitest": "^4.1.11"
+  },
+  "homepage": "https://mylasertools-com.github.io/laser-svg/demo/",
+  "bugs": {
+    "url": "https://github.com/mylasertools-com/laser-svg/issues"
   }
 }

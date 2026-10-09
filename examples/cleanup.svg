@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="80mm" viewBox="0 0 120 80">
+  <g fill="none" stroke="#cf5734" stroke-width="0.65">
+    <path id="tag" d="M28 12 H100 Q108 12 108 20 V60 Q108 68 100 68 H28 L10 40 Z"/>
+    <path id="tag-copy" d="M28 12 H100 Q108 12 108 20 V60 Q108 68 100 68 H28 L10 40 Z"/>
+    <path id="hole" d="M23 40 A3 3 0 1 0 29 40 A3 3 0 1 0 23 40 Z"/>
+    <path id="empty" d=""/>
+  </g>
+  <g fill="none" stroke="#254f46" stroke-width="1.2">
+    <path id="mountains" d="M43 49 L57 28 L67 42 L74 34 L89 49 Z"/>
+    <path id="sun" d="M77 25 A4 4 0 1 0 85 25 A4 4 0 1 0 77 25 Z"/>
+  </g>
+  <path id="guide" display="none" d="M5 5 H115 V75 H5 Z"/>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="80mm">
+  <g fill="none" stroke="#cf5734" stroke-width="2">
+    <path id="panel" d="M50 40 H400 V260 H50 Z"/>
+    <path id="slot" d="M160 135 H290 V165 H160 Z"/>
+    <circle cx="80" cy="70" r="10"/>
+    <circle cx="370" cy="70" r="10"/>
+    <circle cx="80" cy="230" r="10"/>
+    <circle cx="370" cy="230" r="10"/>
+  </g>
+</svg>

@@ -41,7 +41,9 @@ export function tokenizePathData(d: string): PathCommandToken[] | null {
     const match = numberRe.exec(d);
     if (!match || match.index !== i) return null;
     if (current === null) return null;
-    current.args.push(parseFloat(match[0]));
+    const value = Number(match[0]);
+    if (!Number.isFinite(value)) return null;
+    current.args.push(value);
     i = numberRe.lastIndex;
   }
   return tokens;
@@ -123,8 +125,6 @@ export function absolutizePathData(d: string): PathCommandToken[] | null {
   for (const token of tokens) {
     const upper = token.command.toUpperCase();
     const rel = token.command !== upper;
-    const dx = rel ? cx : 0;
-    const dy = rel ? cy : 0;
 
     if (upper === "Z") {
       if (token.args.length !== 0) return null;
@@ -144,6 +144,9 @@ export function absolutizePathData(d: string): PathCommandToken[] | null {
     }
 
     for (let i = 0; i < token.args.length; i += n) {
+      // Each implicit repetition starts at the previous segment's endpoint.
+      const dx = rel ? cx : 0;
+      const dy = rel ? cy : 0;
       const a = token.args.slice(i, i + n);
       let command = upper;
       let args: number[];

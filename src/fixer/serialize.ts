@@ -1,102 +1,67 @@
-import type { SvgDocument, SvgNode, SvgPart } from "../types.ts";
+import type { SvgDocument, SvgNode } from "../types.ts";
+import { sourceSpans } from "../parser/sourceSpans.ts";
 
-/**
- * Re-serialize a parsed document back to XML.
- *
- * The parser preserves source order (elements, text, comments), so the only
- * things that change between parse and serialize are the edits the fixer
- * makes: removed elements and added/changed root attributes. Everything else —
- * whitespace, attribute order, self-closing style, comments — round-trips.
- */
+/** Apply edits to original source; untouched bytes are never reserialized. */
 export function serializeSvg(document: SvgDocument): string {
-  const root = document.root;
-  if (!root) return "";
-  return document.prolog + serializeElement(root) + document.epilog;
-}
-
-function escapeText(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  if (!document.root) return document.source;
+  const retained = new Set<SvgNode>();
+  function visit(node: SvgNode) {
+    retained.add(node);
+    for (const part of node.parts)
+      if (part.kind === "element") visit(part.node);
+  }
+  visit(document.root);
+  const edits: { start: number; end: number; value: string }[] = [];
+  for (const node of [document.root, ...document.elements]) {
+    const span = sourceSpans.get(node)!;
+    if (!retained.has(node)) {
+      if (node.parent && retained.has(node.parent))
+        edits.push({ start: span.start, end: span.end, value: "" });
+      continue;
+    }
+    const added = Object.entries(node.attributes).filter(
+      ([key]) => !(key in span.attributes),
+    );
+    let opening = document.source.slice(span.start, span.openEnd);
+    opening = opening.replace(
+      /([^\s=<>]+)\s*=\s*(["'])(.*?)\2/gs,
+      (match, key: string) => {
+        if (!(key in node.attributes)) return "";
+        if (node.attributes[key] === span.attributes[key]) return match;
+        return `${key}="${escapeAttr(node.attributes[key])}"`;
+      },
+    );
+    if (added.length)
+      opening = opening.replace(
+        /\/?\s*>$/,
+        (end) =>
+          added
+            .map(([key, value]) => ` ${key}="${escapeAttr(value)}"`)
+            .join("") + end,
+      );
+    if (opening !== document.source.slice(span.start, span.openEnd))
+      edits.push({ start: span.start, end: span.openEnd, value: opening });
+  }
+  let result = document.source;
+  for (const edit of edits.sort((a, b) => b.start - a.start))
+    result = result.slice(0, edit.start) + edit.value + result.slice(edit.end);
+  return result;
 }
 
 function escapeAttr(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
 
-function serializeAttributes(node: SvgNode): string {
-  let out = "";
-  for (const [key, value] of Object.entries(node.attributes)) {
-    out += ` ${key}="${escapeAttr(value)}"`;
-  }
-  return out;
-}
-
-function serializeElement(node: SvgNode): string {
-  const open = `<${node.name}${serializeAttributes(node)}`;
-  if (node.parts.length === 0) {
-    return `${open}/>`;
-  }
-  let body = "";
-  for (const part of node.parts) {
-    body += serializePart(part);
-  }
-  return `${open}>${body}</${node.name}>`;
-}
-
-function serializePart(part: SvgPart): string {
-  switch (part.kind) {
-    case "element":
-      return serializeElement(part.node);
-    case "text":
-      return escapeText(part.text);
-    case "raw":
-      switch (part.rawKind) {
-        case "comment":
-          return `<!--${part.text}-->`;
-        case "cdata":
-          return `<![CDATA[${part.text}]]>`;
-        case "pi":
-          return `<?${part.text}?>`;
-        case "doctype":
-          return `<!DOCTYPE${part.text}>`;
-      }
-      return "";
-  }
-}
-
-/**
- * Remove an element from its parent, along with the whitespace-only text
- * node immediately before it (the indentation of its line), so removing a
- * line does not leave a blank or mis-indented line behind. Falls back to
- * the following whitespace node when the element is first on its line.
- */
 export function removeElement(node: SvgNode): void {
-  const parent = node.parent;
-  if (!parent) return;
-  const idx = parent.parts.findIndex(
-    (p) => p.kind === "element" && p.node === node,
+  if (!node.parent) return;
+  node.parent.parts = node.parent.parts.filter(
+    (p) => p.kind !== "element" || p.node !== node,
   );
-  if (idx === -1) return;
-  parent.parts.splice(idx, 1);
-
-  const prev = parent.parts[idx - 1];
-  if (prev && prev.kind === "text" && prev.text.trim() === "") {
-    parent.parts.splice(idx - 1, 1);
-    return;
-  }
-  const next = parent.parts[idx];
-  if (next && next.kind === "text" && next.text.trim() === "") {
-    parent.parts.splice(idx, 1);
-  }
 }
 
-/** Set (or replace) an attribute on a node, preserving position if existing. */
 export function setAttribute(node: SvgNode, key: string, value: string): void {
   node.attributes[key] = value;
 }
